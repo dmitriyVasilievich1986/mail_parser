@@ -11,6 +11,8 @@ if V3:
 else:
     from .p2_print import p2_print as p
 
+OPEN_DICT = {"mode": "r", "encoding": "cp437"} if V3 else {"mode": "r"}
+
 
 def get_logs_from_path(path, *args, **kwargs):
     """The function accepts as input to the file
@@ -50,7 +52,7 @@ def sort_function(path, *args, **kwargs):
         bool: contain line exact template or not.
     """
 
-    with open(path, "r") as file:
+    with open(path, **OPEN_DICT) as file:
         for i, line in enumerate(file.readlines()):
             if re.search(r"^\S+ \d+ -*?\d+ \S+ \S+$", line) is not None:
                 return True
@@ -79,7 +81,7 @@ def main(
             logger.warning("File <{}> doesn`t exist.".format(log))
             continue
         # open file
-        with open(log, "r") as file:
+        with open(log, **OPEN_DICT) as file:
             logger.info("Open for read file: {}".format(log))
             lines = file.readlines()
             # progress bar
