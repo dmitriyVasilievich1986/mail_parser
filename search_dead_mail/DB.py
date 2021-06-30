@@ -1,6 +1,7 @@
 # region import libraries
 from .config import logger
 import sqlite3
+import os
 import re
 
 # endregion
@@ -43,6 +44,10 @@ class DB:
     def __init__(self, path, *args, **kwargs):
         dbname = re.sub(r".*?\/|\..*", "", path)
         self.path = "databases/{}.db".format(dbname)
+        try:
+            os.makedirs("databases")
+        except OSError:
+            pass
         try:
             self.connection = sqlite3.connect(self.path)
             self.cursor = self.connection.cursor()
