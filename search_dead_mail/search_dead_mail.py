@@ -59,14 +59,7 @@ def sort_function(path, *args, **kwargs):
 
 
 def main(
-    v=CHOICES[0],
-    mails=None,
-    code=None,
-    path=None,
-    n=None,
-    s=None,
-    *args,
-    **kwargs,
+    v=CHOICES[0], mails=None, code=None, path=None, n=None, s=None, *args, **kwargs
 ):
     logger.info("start")
     start_time = datetime.now()

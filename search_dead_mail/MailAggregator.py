@@ -33,14 +33,15 @@ class MailAggregator:
 
     def _add_instance(self, instance, *args, **kwargs):
         if isinstance(instance, Scheduler):
-            mail = self.mails.get(instance.code, False)
-            # print(mail)
+            mail = self[instance.code]
             mail and mail + instance
         elif isinstance(instance, Router):
-            # print(instance.code)
             if self.mails.get(instance.code, False):
-                logger.warning("Code: {}, repeates in logs.".format(instance.code))
-            self.mails[instance.code] = instance
+                # logger.warning("Code: {}, repeates in logs.".format(instance.code))
+                pass
+            else:
+                self.mails[instance.code] = instance
+                instance.code_id = len(self.mails)
 
     # endregion
 
@@ -58,8 +59,9 @@ class MailAggregator:
             filtered_mails = good_mails
         elif choice == "bad" and "bad" in CHOICES:
             filtered_mails = bad_mails
+        elif choice == "null" and "null" in CHOICES:
+            return ""
         else:
-            # filtered_mails = list(self.mails.values())
             filtered_mails = sorted(list(self.mails.values()), key=lambda x: x.is_ok)
 
         filtered_mails = (
@@ -97,19 +99,14 @@ class MailAggregator:
     def _get_good_and_bad_mails(self, filtered_list=None, *args, **kwargs):
         filtered_list = filtered_list or list(self.mails.values())
         good_mails, bad_mails = list(), list()
-        mails = dict()
 
-        for router in filtered_list:
-            for mail in router.mails:
-                mails[mail] = router.is_ok or mails.get(mail, router.is_ok)
-
-        for mail in list(mails.keys()):
-            if mails[mail]:
+        for mail in list(filtered_list):
+            if mail.is_ok:
                 good_mails.append(mail)
             else:
                 bad_mails.append(mail)
 
-        return good_mails, bad_mails, list(mails.values())
+        return good_mails, bad_mails, filtered_list
 
     # endregion
 
@@ -124,7 +121,7 @@ class MailAggregator:
 
     def save_sqlite(self, *args, **kwargs):
         db = DB(self.path)
-        self._insert_codes(self._get_codes(), db)
+        self._insert_codes(db)
         self._insert_mails(self._get_mails(), db)
         db.close()
 
@@ -140,14 +137,8 @@ class MailAggregator:
         )
         db.execute(query)
 
-    def _get_codes(self, *args, **kwargs):
-        codes = list()
-        for i, key in enumerate(list(self.mails.keys()), start=1):
-            self.mails[key].id = i
-            codes.append(key)
-        return codes
-
-    def _insert_codes(self, codes, db, *args, **kwargs):
+    def _insert_codes(self, db, *args, **kwargs):
+        codes = list(self.mails)
         query = "INSERT INTO code(code) VALUES {}".format(
             ",".join("('{}')".format(x) for x in codes)
         )

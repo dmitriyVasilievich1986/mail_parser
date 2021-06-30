@@ -10,20 +10,20 @@ class Router:
             raise InitializationException()
 
         self.scheduler = list()
+        self._add_all = False
         self.mails = list()
         self.text = text
 
         self.from_ = self._get_from()
         self.code = self._get_code()
         self.to = self._get_to()
+        self.code_id = None
         self.is_ok = False
-        self.id = None
 
     # endregion
 
     # region add and get instances
     def __add__(self, value, *args, **kwargs):
-        # print(value)
         if value.code == self.code:
             self.scheduler.append(value)
             if value.status == "ok":
@@ -34,7 +34,7 @@ class Router:
             return self.mails.get(value, False)
         elif isinstance(value, list):
             for mail_or_code in value:
-                if self.mails.get(mail_or_code, False) or self.code in mail_or_code:
+                if mail_or_code in self.mails or mail_or_code == self.code:
                     return True
             return False
         return False
@@ -51,7 +51,7 @@ class Router:
         from_to_line = re.search(r"fromto:.*$", self.text).group(0)
         from_reg = re.search(r"^fromto: <.*?> =>", from_to_line)
         from_ = from_reg and re.sub(r"^fromto: <|> =>", "", from_reg.group(0)) or ""
-        if not from_ == "":
+        if self._add_all and from_ != "":
             self.mails.append(from_)
         return "null" if from_ == "" else from_
 
@@ -60,7 +60,12 @@ class Router:
         to_reg = re.search(r"=>.*", from_to_line)
         to_all_reg = to_reg and re.findall(r"<.*?>", to_reg.group(0)) or None
         to_all = to_all_reg and [re.sub(r"<|>", "", x) for x in to_all_reg] or []
-        self.mails += to_all
+        if not self._add_all and not len(
+            [x for x in to_all if re.search(r"rol.ru$|online.ru$", x)]
+        ):
+            raise InitializationException()
+        else:
+            self.mails += to_all
         return "null" if to_all == "" else to_all
 
     # endregion
@@ -74,7 +79,7 @@ class Router:
     def get_sql_values(self, *args, **kwargs):
         payload = list()
         for mail in self.mails:
-            values = "({}, '{}', {})".format(self.id, mail, 2 if self.is_ok else 1)
+            values = "({}, '{}', {})".format(self.code_id, mail, 2 if self.is_ok else 1)
             payload.append(values)
         return payload
 

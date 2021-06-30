@@ -14,6 +14,7 @@ CHOICES = [
     "full",
     "good",
     "bad",
+    "null",
 ]
 # endregion
 
