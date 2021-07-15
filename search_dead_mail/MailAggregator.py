@@ -173,7 +173,7 @@ class MailAggregator(IterClass):
             str: a string with data from the list.
         """
 
-        mails = mails or list(self.get_mail_filter())
+        mails = mails is None and list(self.get_mail_filter()) or mails
         length = len(mails)
         n = n and min(n, length) or length
 
