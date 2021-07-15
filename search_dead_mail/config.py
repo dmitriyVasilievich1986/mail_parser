@@ -1,5 +1,5 @@
 # region import libraries
-from pathlib import Path
+from os import path
 import platform
 import logging
 import sys
@@ -73,8 +73,8 @@ logger.setLevel(logging.DEBUG)
 
 
 class BaseConfig:
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    LOGS = BASE_DIR / "logs"
+    BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
+    LOGS = path.join(BASE_DIR, "logs")
 
 
 # endregion
