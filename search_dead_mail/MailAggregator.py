@@ -1,26 +1,90 @@
+# region import libraries
 from .InitializationException import InitializationException
-from .config import BaseConfig, logger, V3, CHOICES
 from collections import OrderedDict
+from .MailFilter import MailFilter
+from .IterClass import IterClass
 from .scheduler import Scheduler
+from .config import logger, V3
 from .router import Router
 from .DB import DB
 
-import json
+# endregion
 
 
-class MailAggregator:
+class MailAggregator(IterClass):
     # region class initialization
     def __init__(self, path, *args, **kwargs):
+        """The main class for storing, aggregating, sorting and filtering data.
+        It takes a single line from the logs, creates a class that stores data on its basis.
+        Accepts data filtering patterns. Also displays sorted and filtered data to the screen.
+        Has the ability to save the received data to the sqlite database.
+
+        Args:
+            path (str): path to file or directory with log files.
+        """
+
         self.mails = OrderedDict()
         self.path = path
 
     # endregion
 
+    # region get items from class storage and set iter methods
+    @property
+    def mails_values(self, *args, **kwargs):
+        """The method returns a list of all emails stored in an instance of the class.
+
+        Returns:
+            list: list of all emails stored in an instance of the class.
+        """
+
+        if self.__dict__.get("_mails_values") is None:
+            self._mails_values = list(self.mails.values())
+        return self._mails_values
+
+    def get_mail_filter(self, code_and_mail=None, *args, **kwargs):
+        """Method returns MailFilter class instance.
+
+        Args:
+            code_and_mail (list, optional): List of emails and codes by which you need to filter. Defaults to None.
+
+        Returns:
+            MailFilter: MailFilter class instance.
+        """
+
+        if self.__dict__.get("_mail_filter") is None:
+            self._mail_filter = MailFilter(list(self), code_and_mail)
+        return self._mail_filter
+
     def __getitem__(self, value, *args, **kwargs):
-        return self.mails.get(value, False)
+        """A method for retrieving data from values stored in an instance of a class.
+
+        Args:
+            value (Union[str, int, slice]): The index at which to search for the value.
+
+        Raises:
+            IndexError: Displayed if no data matching the entered index could be found.
+
+        Returns:
+            Union[str, list]: The value or slice corresponding to the entered index.
+        """
+
+        if isinstance(value, str) and self.mails.get(value, False):
+            return self.mails[value]
+        elif isinstance(value, int) or isinstance(value, slice):
+            return self.mails_values[value]
+        raise IndexError
+
+    # endregion
 
     # region add new instances
     def __add__(self, value, *args, **kwargs):
+        """The method accepts a string from the logs as input.
+        Initializes one of the classes for storing data from logs.
+
+        Args:
+            value (str): string from the logs.
+        """
+
         if not isinstance(value, str):
             return
         for class_name in [Scheduler, Router]:
@@ -32,112 +96,110 @@ class MailAggregator:
                 pass
 
     def _add_instance(self, instance, *args, **kwargs):
+        """The method accepts an instance of one of the classes for storing data. Saves it to its own storage.
+
+        Args:
+            instance (Union[Router, Scheduler]): an instance of one of the classes for storing data.
+        """
+
         if isinstance(instance, Scheduler):
-            mail = self[instance.code]
-            mail and mail + instance
+            try:
+                self[instance.code] + instance
+            except IndexError:
+                pass
         elif isinstance(instance, Router):
             if self.mails.get(instance.code, False):
                 # logger.warning("Code: {}, repeates in logs.".format(instance.code))
                 pass
             else:
-                self.mails[instance.code] = instance
                 instance.code_id = len(self.mails)
+                self.mails[instance.code] = instance
 
     # endregion
 
     # region string representaion of class
-    def __str__(self, n=None, *args, **kwargs):
-        return self._get_list_string(n=n)
+    def __str__(self, mails=None, n=None, *args, **kwargs):
+        """The method returns a string representation of an instance of the class.
 
-    def show(
-        self, choice=CHOICES[0], n=None, code=list(), mail=list(), *args, **kwargs
-    ):
-        good_mails, bad_mails, all_mails = self._get_good_and_bad_mails()
+        Args:
+            mails (Union[list, None], optional): list of emails required for display. Defaults to None.
+            n (Union[int, None], optional): number of displayed items. Defaults to None.
+
+        Returns:
+            str: a string representation of an instance of the class.
+        """
+
+        return self._get_list_string(mails=mails, n=n)
+
+    def show(self, choice, code, mail, n, *args, **kwargs):
+        """The method accepts email filtering parameters as input.
+        Gets a filtered list and displays it.
+
+        Args:
+            choice (str): a value from a list of valid values to choose from.
+            code (Union[list, None]): a list of codes by which filtering is required.
+            mail (Union[list, None]): a list of emails by which filtering is required.
+            n (Union[int, None]): The number of lines to display on the screen.
+
+        Returns:
+            str: displayed information.
+        """
+
         code_and_mails = code + mail
-
-        if choice == "good" and "good" in CHOICES:
-            filtered_mails = good_mails
-        elif choice == "bad" and "bad" in CHOICES:
-            filtered_mails = bad_mails
-        elif choice == "null" and "null" in CHOICES:
-            return ""
-        else:
-            filtered_mails = sorted(list(self.mails.values()), key=lambda x: x.is_ok)
-
-        filtered_mails = (
-            len(code_and_mails)
-            and self._filter_by_mail_or_code(filtered_mails, code_and_mails)
-            or filtered_mails
-        )
-        return (
-            self._get_list_string(n=n, mails=filtered_mails)
-            if len(filtered_mails)
-            else "No data matching this query was found."
-        )
+        filtered_mails = self.get_mail_filter(code_and_mails)
+        return self.__str__(mails=filtered_mails.get(choice), n=n)
 
     def _get_list_string(
         self, n=None, mails=None, message="\tList of mail objects:\n", *args, **kwargs
     ):
-        mails = mails or list(self.mails.values())
+        """The method accepts a filtered email list. Returns a string with data from the list.
+
+        Args:
+            n (Union[int, None]): The number of lines to display on the screen.
+            mails (Union[list, None], optional): a filtered email list. Defaults to None.
+            message (str, optional): The message at the beginning of the displayed information. Defaults to "\tList of mail objects:\n".
+
+        Returns:
+            str: a string with data from the list.
+        """
+
+        mails = mails or list(self.get_mail_filter())
         length = len(mails)
         n = n and min(n, length) or length
-        end = min(n, length)
+
+        if not length:
+            logger.warning("No matches were found that match your request.")
+            return ""
+
         payload = "\n{}".format(message)
-        for i, mail in enumerate(mails[:end], start=1):
+        for i, mail in enumerate(mails[:n], start=1):
             payload += "{:<4} - {}\n".format(i, mail)
-        payload += "\tShow: {}, Overall: {}".format(n, length)
+        payload += "\tShow: {}, Overall: {}\n".format(n, length)
         return payload
-
-    # endregion
-
-    # region filtration data
-
-    def _filter_by_mail_or_code(self, mails, mail_or_code=list(), *args, **kwargs):
-        filtered_mails = [x for x in mails if x[mail_or_code]]
-        return filtered_mails
-
-    def _get_good_and_bad_mails(self, filtered_list=None, *args, **kwargs):
-        filtered_list = filtered_list or list(self.mails.values())
-        good_mails, bad_mails = list(), list()
-
-        for mail in list(filtered_list):
-            if mail.is_ok:
-                good_mails.append(mail)
-            else:
-                bad_mails.append(mail)
-
-        return good_mails, bad_mails, filtered_list
 
     # endregion
 
     # region save data
-    def save_to_file(self, *args, **kwargs):
-        bad_mails = self._get_good_and_bad_mails(show="bad")
-        good_mails = self._get_good_and_bad_mails(show="good")
-        with open(BaseConfig.BAD_MAILS, "w") as f:
-            f.write(json.dumps(bad_mails))
-        with open(BaseConfig.GOOD_MAILS, "w") as f:
-            f.write(json.dumps(good_mails))
-
     def save_sqlite(self, *args, **kwargs):
+        """Method for working with a database. Creates a connection to the database, saves data to the database, closes the connection."""
+
         db = DB(self.path)
         self._insert_codes(db)
-        self._insert_mails(self._get_mails(), db)
+        self._insert_mails(db)
         db.close()
 
-    def _get_mails(self, *args, **kwargs):
-        payload = list()
-        for value in list(self.mails.values()):
-            payload += value.get_sql_values()
-        return payload
+    def _insert_mails(self, db, *args, **kwargs):
+        """Puts data into a mails table."""
 
-    def _insert_mails(self, mails, db, *args, **kwargs):
+        mails = [x.get_sql_values() for x in self.mails_values]
         query = "INSERT INTO mail(code_id, mail, status_id) VALUES {}".format(
             ",".join(x for x in mails)
         )
         db.execute(query)
 
     def _insert_codes(self, db, *args, **kwargs):
+        """Puts data into a codes table."""
+
         codes = list(self.mails)
         query = "INSERT INTO code(code) VALUES {}".format(
             ",".join("('{}')".format(x) for x in codes)

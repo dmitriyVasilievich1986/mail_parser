@@ -1,4 +1,5 @@
 # region import libraries
+import platform
 import logging
 import sys
 
@@ -9,27 +10,38 @@ import sys
 # python version
 V3 = sys.version_info.major == 3
 
-# choices to which information to show
-CHOICES = [
-    "full",
-    "good",
-    "bad",
-    "null",
-]
+is_linux = platform.system() == "Linux"
 # endregion
+
+
+class Colors:
+    INFO = "\033[92m" if is_linux else ""
+    ERROR = "\033[91m" if is_linux else ""
+    WARNING = "\033[93m" if is_linux else ""
+
+    END = "\033[0m" if is_linux else ""
 
 
 # region initialize logger
 class MyFormatter(logging.Formatter):
     _formats = {
         "INFO": logging.Formatter(
-            "\033[92m[%(asctime)s]%(levelname)s: %(message)s\033[0m", datefmt="%H:%M:%S"
+            "{}[%(asctime)s]%(levelname)s: %(message)s{}".format(
+                Colors.INFO, Colors.END
+            ),
+            datefmt="%H:%M:%S",
         ),
         "ERROR": logging.Formatter(
-            "\033[91m[%(asctime)s]%(levelname)s: %(message)s\033[0m", datefmt="%H:%M:%S"
+            "{}[%(asctime)s]%(levelname)s: %(message)s{}".format(
+                Colors.ERROR, Colors.END
+            ),
+            datefmt="%H:%M:%S",
         ),
         "WARNING": logging.Formatter(
-            "\033[93m[%(asctime)s]%(levelname)s: %(message)s\033[0m", datefmt="%H:%M:%S"
+            "{}[%(asctime)s]%(levelname)s: %(message)s{}".format(
+                Colors.WARNING, Colors.END
+            ),
+            datefmt="%H:%M:%S",
         ),
     }
 

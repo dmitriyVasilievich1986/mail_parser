@@ -30,14 +30,15 @@ class Router:
                 self.is_ok = True
 
     def __getitem__(self, value, *args, **kwargs):
-        if isinstance(value, str):
-            return self.mails.get(value, False)
+        if isinstance(value, str) and self.mails.get(value, False):
+            return self.mails[value]
         elif isinstance(value, list):
-            for mail_or_code in value:
-                if mail_or_code in self.mails or mail_or_code == self.code:
-                    return True
-            return False
-        return False
+            if self.code in value:
+                return self
+            for mail in self.mails:
+                if mail in value:
+                    return self
+        raise IndexError
 
     # endregion
 
@@ -85,8 +86,7 @@ class Router:
 
     @property
     def status(self, *args, **kwargs):
-        payload = "["
-        payload += ",".join(x.status for x in self.scheduler) + "]"
+        payload = "[" + ",".join(x.status for x in self.scheduler) + "]"
         return "[Unknown]" if payload == "[]" else payload
 
     # endregion

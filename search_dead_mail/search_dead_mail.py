@@ -1,5 +1,6 @@
-from .config import BaseConfig, V3, logger, CHOICES
+from .config import BaseConfig, V3, logger
 from .MailAggregator import MailAggregator
+from .Choices import Choices
 
 from os.path import exists, isfile, isdir, join
 from datetime import datetime
@@ -61,7 +62,14 @@ def sort_function(path, *args, **kwargs):
 
 
 def main(
-    v=CHOICES[0], mails=None, code=None, path=None, n=None, s=None, *args, **kwargs
+    v=Choices().default,
+    mails=None,
+    code=None,
+    path=None,
+    n=None,
+    s=None,
+    *args,
+    **kwargs
 ):
     logger.info("start")
     start_time = datetime.now()
@@ -71,15 +79,10 @@ def main(
 
     agg = MailAggregator(path)
 
-    if not len(logs):
-        logger.warning("No log files were found.")
+    len(logs) or logger.warning("No log files were found.")
 
     # read logs
     for log in logs:
-        # check file
-        if not isfile(log):
-            logger.warning("File <{}> doesn`t exist.".format(log))
-            continue
         # open file
         with open(log, **OPEN_DICT) as file:
             logger.info("Open for read file: {}".format(log))
@@ -87,14 +90,11 @@ def main(
             # progress bar
             length = len(lines) // 100
             for i, line in enumerate(lines):
-                if not i % length:
-                    p("Progress: {}%".format(i // length))
-                # try to add data from log
+                i % length or p("Progress: {}%".format(i // length))
                 agg + line
 
-    print(agg.show(n=n, choice=v, mail=mails, code=code))
+    v is not Choices().null and p(agg.show(n=n, choice=v, mail=mails, code=code))
     s and agg.save_sqlite()
-    # print(agg.mails.keys())
 
     end_time = datetime.now() - start_time
     logger.info("Overall time: {}".format(end_time))

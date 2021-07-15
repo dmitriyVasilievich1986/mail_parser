@@ -42,12 +42,22 @@ class DB:
 
     # region initialize class
     def __init__(self, path, *args, **kwargs):
+        """A class intended for working with a sqlite database.
+        Creates a database, tables and adds data.
+
+        Args:
+            path (str): path to bd.
+        """
+
         dbname = re.sub(r".*?\/|\..*", "", path)
+        dbname = dbname if dbname != "" else "generic"
         self.path = "databases/{}.db".format(dbname)
+
         try:
             os.makedirs("databases")
         except OSError:
             pass
+
         try:
             self.connection = sqlite3.connect(self.path)
             self.cursor = self.connection.cursor()
@@ -62,18 +72,26 @@ class DB:
 
     # region work with sqlite database
     def _insert_statuses(self, *args, **kwargs):
+        """The method enters data into the "status" table."""
+
         query = "INSERT INTO status(status) VALUES ('error'),('ok')"
         self.execute(query)
 
     def _create_tables(self, *args, **kwargs):
+        """The method creates new tables."""
+
         for create in self.create_tables:
             self.execute(create)
 
     def _drop_tables(self, *args, **kwargs):
+        """The method delete tables, if thay already exists."""
+
         for drop in self.drop_tables:
             self.execute(drop)
 
     def execute(self, query, *args, **kwargs):
+        """The method execute sql query."""
+
         try:
             self.cursor.execute(query)
             self.connection.commit()
@@ -81,6 +99,8 @@ class DB:
             logger.error("Failed to execute sql query. Query: {}".format(query))
 
     def close(self, *args, **kwargs):
+        """The method close connection with db."""
+
         self.connection.close()
         logger.info("Data saved to file: {}".format(self.path))
 

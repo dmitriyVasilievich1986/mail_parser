@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
-from search_dead_mail import main, CHOICES
+from search_dead_mail import main, Choices
 from argparse import ArgumentParser
 
 
 def get_parser():
     parser = ArgumentParser()
+    choices = Choices()
     parser.add_argument(
         "-M",
         "--mails",
@@ -25,6 +26,7 @@ def get_parser():
     parser.add_argument(
         "-P",
         "--path",
+        type=str,
         metavar="",
         help="Enter path to log file or directpry with log files.",
     )
@@ -37,8 +39,9 @@ def get_parser():
     parser.add_argument(
         "-V",
         "--verbose",
-        default=CHOICES[0],
-        choices=CHOICES,
+        type=str,
+        choices=list(choices),
+        default=choices.default,
         help='Which type information show. bad/good - only bad or good mails. none - doesn`t show any. Default: "full".',
     )
     parser.add_argument(
@@ -61,10 +64,10 @@ if __name__ == "__main__":
     parser = get_parser()
 
     main(
+        v=Choices()[parser.verbose],
         mails=parser.mails,
         code=parser.code,
         path=parser.path,
-        v=parser.verbose,
         n=parser.limit,
         s=parser.save,
     )
