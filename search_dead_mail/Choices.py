@@ -1,4 +1,37 @@
+# region import libraries
 from .IterClass import IterClass
+
+# endregion
+
+# region all choices classes
+class Choice:
+    def __str__(self, *args, **kwargs):
+        """The method returns a string representation of an instance of the class.
+
+        Returns:
+            str: a string representation of an instance of the class.
+        """
+
+        return self.__class__.__name__.lower()
+
+
+class Full(Choice):
+    pass
+
+
+class Null(Choice):
+    pass
+
+
+class Good(Choice):
+    pass
+
+
+class Bad(Choice):
+    pass
+
+
+# endregion
 
 
 class Choices(IterClass):
@@ -8,10 +41,10 @@ class Choices(IterClass):
         It is used to select options for displaying information.
         """
 
-        self.full = "full"
-        self.null = "null"
-        self.good = "good"
-        self.bad = "bad"
+        self.full = Full()
+        self.null = Null()
+        self.good = Good()
+        self.bad = Bad()
 
         self.choices = list(self.__dict__.values())
 
@@ -45,6 +78,32 @@ class Choices(IterClass):
             return self.__dict__[value]
         elif isinstance(value, int) or isinstance(value, slice):
             return self.choices[value]
+        elif isinstance(value, Choice):
+            return self.__dict__[str(value)]
         raise IndexError
+
+    # endregion
+
+    # region iteration methods for class
+    def __iter__(self, *args, **kwargs):
+        """Method initializer for an iterable object.
+
+        Returns:
+            Choices: returns self.
+        """
+
+        self.__iter_item = 0
+        return self
+
+    def __next__(self, *args, **kwargs):
+        try:
+            payload = str(self[self.__iter_item])
+            self.__iter_item += 1
+            return payload
+        except IndexError:
+            raise StopIteration
+
+    def next(self, *args, **kwargs):
+        return self.__next__()
 
     # endregion

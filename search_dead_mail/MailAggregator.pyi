@@ -1,18 +1,20 @@
 # region import libraries
+from typing import Union
 from .MailFilter import MailFilter
 from .IterClass import IterClass
 from .scheduler import Scheduler
+from .Choices import Choice
 from .router import Router
-from typing import Union
 from .DB import DB
 
 # endregion
 
 class MailAggregator(IterClass):
-    # region class initialization
     def __init__(self, path, *args: list, **kwargs: dict) -> None: ...
     @property
     def mails_values(self, *args: list, **kwargs: dict) -> list: ...
+    @property
+    def length(self, *args: list, **kwargs: dict) -> int: ...
     def get_mail_filter(
         self, code_and_mail: Union[list, None], *args: list, **kwargs: dict
     ) -> MailFilter: ...
@@ -28,7 +30,7 @@ class MailAggregator(IterClass):
     ) -> str: ...
     def show(
         self,
-        choice: str,
+        choice: Choice,
         code: Union[list, None],
         mail: Union[list, None],
         n: Union[int, None],

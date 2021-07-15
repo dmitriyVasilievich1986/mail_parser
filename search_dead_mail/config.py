@@ -1,4 +1,5 @@
 # region import libraries
+from pathlib import Path
 import platform
 import logging
 import sys
@@ -51,7 +52,7 @@ class MyFormatter(logging.Formatter):
         else:
             super(MyFormatter, self).__init__(*args, **kwargs)
 
-    def format(self, record):
+    def format(self, record, *args, **kwargs):
         f = self._formats.get(record.levelname)
 
         return f.format(record)
@@ -72,7 +73,8 @@ logger.setLevel(logging.DEBUG)
 
 
 class BaseConfig:
-    LOGS = "logs"
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    LOGS = BASE_DIR / "logs"
 
 
 # endregion

@@ -28,7 +28,7 @@ class MailAggregator(IterClass):
 
     # endregion
 
-    # region get items from class storage and set iter methods
+    # region get items from class storage
     @property
     def mails_values(self, *args, **kwargs):
         """The method returns a list of all emails stored in an instance of the class.
@@ -40,6 +40,16 @@ class MailAggregator(IterClass):
         if self.__dict__.get("_mails_values") is None:
             self._mails_values = list(self.mails.values())
         return self._mails_values
+
+    @property
+    def length(self, *args, **kwargs):
+        """The method returns the number of emails.
+
+        Returns:
+            int: the number of emails.
+        """
+
+        return len(self.mails_values)
 
     def get_mail_filter(self, code_and_mail=None, *args, **kwargs):
         """Method returns MailFilter class instance.
@@ -183,6 +193,10 @@ class MailAggregator(IterClass):
     def save_sqlite(self, *args, **kwargs):
         """Method for working with a database. Creates a connection to the database, saves data to the database, closes the connection."""
 
+        if not self.length:
+            logger.warning("Can`t save data to DB. No data required.")
+            return
+
         db = DB(self.path)
         self._insert_codes(db)
         self._insert_mails(db)
@@ -191,7 +205,10 @@ class MailAggregator(IterClass):
     def _insert_mails(self, db, *args, **kwargs):
         """Puts data into a mails table."""
 
-        mails = [x.get_sql_values() for x in self.mails_values]
+        mails = list()
+        for mail in self.mails_values:
+            mails += mail.get_sql_values()
+
         query = "INSERT INTO mail(code_id, mail, status_id) VALUES {}".format(
             ",".join(x for x in mails)
         )

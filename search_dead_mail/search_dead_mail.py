@@ -1,20 +1,26 @@
+# region import libraries
 from .config import BaseConfig, V3, logger
 from .MailAggregator import MailAggregator
-from .Choices import Choices
+from .Choices import Choices, Null
 
 from os.path import exists, isfile, isdir, join
 from datetime import datetime
 from os import listdir
 import re
 
+# endregion
+
+# region constants initialization
 if V3:
     from .p3_print import p3_print as p
 else:
     from .p2_print import p2_print as p
 
 OPEN_DICT = {"mode": "r", "encoding": "cp437"} if V3 else {"mode": "r"}
+# endregion
 
 
+# region search and formation of a list of pathes to logs
 def get_logs_from_path(path, *args, **kwargs):
     """The function accepts as input to the file
         or to the folder where you need to find the logs for parsing.
@@ -61,20 +67,36 @@ def sort_function(path, *args, **kwargs):
                 return False
 
 
+# endregion
+
+
+# region main function
 def main(
     v=Choices().default,
-    mails=None,
-    code=None,
+    mails=list(),
+    code=list(),
     path=None,
+    s=False,
     n=None,
-    s=None,
     *args,
     **kwargs
 ):
+    """The function is the main entry point for the search_dead_mail module.
+
+    Args:
+        v (Choice, optional): type of displayed informations. Defaults to Choices().default.
+        mails (list, optional): a list of emails by which filtering is required. Defaults to None.
+        code (list, optional): a list of codes by which filtering is required. Defaults to None.
+        path (str, optional): path to file or directory with log files. Defaults to None.
+        s (bool, optional): Flag of the need to save data to the sqlite database. Defaults to False.
+        n (Union[int, None], optional): number of displayed items. Defaults to None.
+    """
+
     logger.info("start")
     start_time = datetime.now()
 
     path = path or BaseConfig.LOGS
+    logger.info("Path to log files: {}".format(path))
     logs = sorted(get_logs_from_path(path), key=sort_function)
 
     agg = MailAggregator(path)
@@ -93,8 +115,11 @@ def main(
                 i % length or p("Progress: {}%".format(i // length))
                 agg + line
 
-    v is not Choices().null and p(agg.show(n=n, choice=v, mail=mails, code=code))
+    not isinstance(v, Null) and p(agg.show(n=n, choice=v, mail=mails, code=code))
     s and agg.save_sqlite()
 
     end_time = datetime.now() - start_time
     logger.info("Overall time: {}".format(end_time))
+
+
+# endregion
